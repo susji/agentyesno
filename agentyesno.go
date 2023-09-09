@@ -29,6 +29,10 @@ func Fatal(f string, va ...interface{}) {
 	os.Exit(1)
 }
 
+func Note(f string, va ...interface{}) {
+	fmt.Fprintf(os.Stdout, f+"\n", va...)
+}
+
 func main() {
 	var listen, agent string
 	var printlisten bool
@@ -55,12 +59,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	fmt.Println("listen:   ", listen)
-	fmt.Println("agent:    ", agent)
-	fmt.Println("timeout:  ", ac.timeout)
-	fmt.Println("fullkeys: ", ac.fullkeys)
-	fmt.Println("easyyes:  ", ac.easyyes)
-	fmt.Println("verbose:  ", ac.verbose)
+	Note("listen:   %s", listen)
+	Note("agent:    %s", agent)
+	Note("timeout:  %s", ac.timeout)
+	Note("fullkeys: %t", ac.fullkeys)
+	Note("easyyes:  %t", ac.easyyes)
+	Note("verbose:  %t", ac.verbose)
 	ensurepaths(listen, agent)
 
 	inerr := 0
@@ -251,7 +255,6 @@ func ensurepaths(one, two string) {
 	// through Stat->Sys to find some inode numbers, but this is good
 	// enough.
 	if strings.TrimSpace(one) == strings.TrimSpace(two) {
-		fmt.Fprintf(os.Stderr, "identical agent and listening paths: %s", one)
-		os.Exit(1)
+		Fatal("identical agent and listening paths: %s", one)
 	}
 }
