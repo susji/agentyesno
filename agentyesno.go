@@ -38,6 +38,9 @@ func main() {
 
 	log.Print("listen: ", listen)
 	log.Print("agent: ", agent)
+	log.Print("timeout: ", timeout)
+	log.Print("fullkeys: ", fullkeys)
+	log.Print("easyyes: ", easyyes)
 	ensurepaths(listen, agent)
 
 	inerr := 0
