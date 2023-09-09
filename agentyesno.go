@@ -22,15 +22,18 @@ import (
 
 func main() {
 	var listen, agent string
-	var timeout time.Duration
-	var fullkeys, easyyes bool
+	ac := AgentConfig{
+		signlock: &sync.Mutex{},
+		sigs:     new(atomic.Uint64),
+	}
 
 	flag.StringVar(&listen, "listen", getsocketdefault(), "Path for our listening agent socket")
 	flag.StringVar(&agent, "agent", getagentdefault(), "Path to real SSH agent's domain socket")
-	flag.BoolVar(&fullkeys, "fullkeys", false, "Dump public keys on sign requests instead of digests")
-	flag.BoolVar(&easyyes, "easyyes", false, "Use `yes` instead of counter for permitting Sign requests")
+	flag.BoolVar(&ac.fullkeys, "fullkeys", false, "Dump public keys on sign requests instead of digests")
+	flag.BoolVar(&ac.easyyes, "easyyes", false, "Use `yes` instead of counter for permitting Sign requests")
+	flag.BoolVar(&ac.verbose, "verbose", false, "Verbose logging")
 	flag.DurationVar(
-		&timeout,
+		&ac.timeout,
 		"timeout",
 		15*time.Second,
 		"Duration to wait for user input on sign request")
@@ -38,22 +41,23 @@ func main() {
 
 	log.Print("listen: ", listen)
 	log.Print("agent: ", agent)
-	log.Print("timeout: ", timeout)
-	log.Print("fullkeys: ", fullkeys)
-	log.Print("easyyes: ", easyyes)
+	log.Print("timeout: ", ac.timeout)
+	log.Print("fullkeys: ", ac.fullkeys)
+	log.Print("easyyes: ", ac.easyyes)
+	log.Print("verbose: ", ac.verbose)
 	ensurepaths(listen, agent)
 
 	inerr := 0
 	if len(listen) == 0 {
 		inerr++
-		log.Print("missing listen path")
+		ac.Important("missing listen path")
 	}
 	if len(agent) == 0 {
 		inerr++
-		log.Print("missing agent path")
+		ac.Important("missing agent path")
 	}
 	if inerr > 0 {
-		log.Fatal("errors, bailing")
+		ac.Important("errors, bailing")
 	}
 
 	if err := os.RemoveAll(listen); err != nil {
@@ -69,27 +73,20 @@ func main() {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		sig := <-c
-		log.Print("bailing, got signal ", sig)
+		ac.Important("bailing, got signal %s", sig)
 		l.Close()
 		if err := os.RemoveAll(listen); err != nil {
-			log.Print("cannot cleanup listening socket:", err)
+			ac.Important("cannot cleanup listening socket: %v", err)
 		}
 		os.Exit(1)
 	}()
 
-	ac := AgentConfig{
-		timeout:  timeout,
-		signlock: &sync.Mutex{},
-		sigs:     new(atomic.Uint64),
-		fullkeys: fullkeys,
-		easyyes:  easyyes,
-	}
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			log.Fatal("cannot accept on listening socket:", err)
+			ac.Fatal("cannot accept on listening socket: %v", err)
 		}
-		log.Print("new client")
+		ac.Verbose("new client")
 		go handle(c, agent, ac)
 	}
 }
@@ -104,7 +101,7 @@ func handle(cc net.Conn, ap string, config AgentConfig) {
 	defer ca.Close()
 
 	a := agent.NewClient(ca)
-	ayn := &AgentYesNo{agent: a, config: config}
+	ayn := &AgentYesNo{agent: a, AgentConfig: config}
 	agent.ServeAgent(ayn, cc)
 }
 
@@ -114,26 +111,41 @@ type AgentConfig struct {
 	sigs     *atomic.Uint64
 	fullkeys bool
 	easyyes  bool
+	verbose  bool
+}
+
+func (ac *AgentConfig) Verbose(fmt string, va ...interface{}) {
+	if ac.verbose {
+		log.Printf(fmt, va...)
+	}
+}
+
+func (ac *AgentConfig) Important(fmt string, va ...interface{}) {
+	log.Printf(fmt, va...)
+}
+
+func (ac *AgentConfig) Fatal(fmt string, va ...interface{}) {
+	log.Fatalf(fmt, va...)
 }
 
 type AgentYesNo struct {
-	agent  agent.Agent
-	config AgentConfig
+	agent agent.Agent
+	AgentConfig
 }
 
 func (a *AgentYesNo) Add(key agent.AddedKey) error {
-	log.Println("request: Add")
+	a.Verbose("request: Add")
 	return a.agent.Add(key)
 }
 
 func (a *AgentYesNo) List() ([]*agent.Key, error) {
-	log.Println("request: List")
+	a.Verbose("request: List")
 	return a.agent.List()
 }
 
 func (a *AgentYesNo) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error) {
 	log.Println("request: Sign")
-	id := a.config.sigs.Add(1)
+	id := a.sigs.Add(1)
 	p := func(fmt string, va ...interface{}) {
 		args := []interface{}{id}
 		args = append(args, va...)
@@ -141,17 +153,17 @@ func (a *AgentYesNo) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error
 	}
 
 	var keydump string
-	if a.config.fullkeys {
+	if a.fullkeys {
 		keydump = fmt.Sprintf("%v", key)
 	} else {
 		keydump = ssh.FingerprintSHA256(key)
 	}
 	p("Sign request incoming for key: %s", keydump)
-	a.config.signlock.Lock()
-	defer a.config.signlock.Unlock()
+	a.signlock.Lock()
+	defer a.signlock.Unlock()
 
 	t0 := time.Now()
-	if a.config.easyyes {
+	if a.easyyes {
 		p("Do you want to accept [yes means 'yes', everything else means 'no']?")
 	} else {
 		p("Do you want to accept [%d means 'yes', everything else means 'no']?", id)
@@ -159,13 +171,13 @@ func (a *AgentYesNo) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error
 	var yn string
 	fmt.Scanln(&yn)
 	t1 := time.Now()
-	if t1.After(t0.Add(a.config.timeout)) {
+	if t1.After(t0.Add(a.timeout)) {
 		p("timed out")
 		return nil, errors.New("approval timed out")
 	}
 	ynf := strings.TrimSpace(yn)
-	if (a.config.easyyes && ynf != "yes") ||
-		(!a.config.easyyes && ynf != strconv.FormatUint(id, 10)) {
+	if (a.easyyes && ynf != "yes") ||
+		(!a.easyyes && ynf != strconv.FormatUint(id, 10)) {
 		p("request denied")
 		return nil, errors.New("request denied")
 	}
@@ -182,35 +194,35 @@ func (a *AgentYesNo) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error
 }
 
 func (a *AgentYesNo) Remove(key ssh.PublicKey) error {
-	log.Println("request: Remove")
+	a.Verbose("request: Remove")
 	return a.agent.Remove(key)
 }
 
 func (a *AgentYesNo) RemoveAll() error {
-	log.Println("request: RemoveAll")
+	a.Verbose("request: RemoveAll")
 	return a.agent.RemoveAll()
 }
 
 func (a *AgentYesNo) Lock(passphrase []byte) error {
-	log.Println("request: Lock")
+	a.Verbose("request: Lock")
 	return a.agent.Lock(passphrase)
 }
 
 func (a *AgentYesNo) Unlock(passphrase []byte) error {
-	log.Println("request: Unlock")
+	a.Verbose("request: Unlock")
 	return a.agent.Unlock(passphrase)
 }
 
 func (a *AgentYesNo) Signers() ([]ssh.Signer, error) {
-	log.Println("request: Signers")
+	a.Verbose("request: Signers")
 	return a.agent.Signers()
 }
 
 func getsocketdefault() string {
 	sockdir, err := os.UserHomeDir()
 	if err != nil {
-		log.Print("warning: unable to get home directory: ", err)
-		log.Print("set the listening path manually to some safe location with `-listen`")
+		fmt.Fprintf(os.Stderr, "warning: unable to get home directory: %v\n", err)
+		fmt.Fprintln(os.Stderr, "set the listening path manually to some safe location with `-listen`")
 		return ""
 	}
 	return path.Join(sockdir, ".agentyesno.socket")
@@ -231,6 +243,7 @@ func ensurepaths(one, two string) {
 	// through Stat->Sys to find some inode numbers, but this is good
 	// enough.
 	if strings.TrimSpace(one) == strings.TrimSpace(two) {
-		log.Fatal("identical agent and listening paths: ", one)
+		fmt.Fprintf(os.Stderr, "identical agent and listening paths: %s", one)
+		os.Exit(1)
 	}
 }
