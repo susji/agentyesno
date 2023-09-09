@@ -207,7 +207,8 @@ func getsocketdefault() string {
 	sockdir, err := os.UserHomeDir()
 	if err != nil {
 		log.Print("warning: unable to get home directory: ", err)
-		log.Fatal("set the listening path manually to some safe location with `-listen`")
+		log.Print("set the listening path manually to some safe location with `-listen`")
+		return ""
 	}
 	return path.Join(sockdir, ".agentyesno.socket")
 }
