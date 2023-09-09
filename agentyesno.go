@@ -38,7 +38,7 @@ func main() {
 	}
 
 	flag.StringVar(&listen, "listen", getsocketdefault(), "Path for our listening agent socket")
-	flag.StringVar(&agent, "agent", getagentdefault(), "Path to real SSH agent's domain socket")
+	flag.StringVar(&agent, "agent", os.Getenv("SSH_AUTH_SOCK"), "Path to real SSH agent's domain socket")
 	flag.BoolVar(&ac.fullkeys, "fullkeys", false, "Dump public keys on sign requests instead of digests")
 	flag.BoolVar(&ac.easyyes, "easyyes", false, "Use `yes` instead of counter for permitting Sign requests")
 	flag.BoolVar(&ac.verbose, "verbose", false, "Verbose logging")
@@ -242,14 +242,6 @@ func getsocketdefault() string {
 		return ""
 	}
 	return path.Join(sockdir, ".agentyesno.socket")
-}
-
-func getagentdefault() string {
-	val, ok := os.LookupEnv("SSH_AUTH_SOCK")
-	if !ok {
-		return ""
-	}
-	return val
 }
 
 func ensurepaths(one, two string) {
