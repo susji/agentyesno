@@ -119,16 +119,17 @@ type AgentYesNo struct {
 }
 
 func (a *AgentYesNo) Add(key agent.AddedKey) error {
-	log.Println("Add")
+	log.Println("request: Add")
 	return a.agent.Add(key)
 }
 
 func (a *AgentYesNo) List() ([]*agent.Key, error) {
-	log.Println("List")
+	log.Println("request: List")
 	return a.agent.List()
 }
 
 func (a *AgentYesNo) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error) {
+	log.Println("request: Sign")
 	id := a.config.sigs.Add(1)
 	p := func(fmt string, va ...interface{}) {
 		args := []interface{}{id}
@@ -178,27 +179,27 @@ func (a *AgentYesNo) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error
 }
 
 func (a *AgentYesNo) Remove(key ssh.PublicKey) error {
-	log.Println("Sign")
+	log.Println("request: Remove")
 	return a.agent.Remove(key)
 }
 
 func (a *AgentYesNo) RemoveAll() error {
-	log.Println("RemoveAll")
+	log.Println("request: RemoveAll")
 	return a.agent.RemoveAll()
 }
 
 func (a *AgentYesNo) Lock(passphrase []byte) error {
-	log.Println("Lock")
+	log.Println("request: Lock")
 	return a.agent.Lock(passphrase)
 }
 
 func (a *AgentYesNo) Unlock(passphrase []byte) error {
-	log.Println("Unlock")
+	log.Println("request: Unlock")
 	return a.agent.Unlock(passphrase)
 }
 
 func (a *AgentYesNo) Signers() ([]ssh.Signer, error) {
-	log.Println("Signers")
+	log.Println("request: Signers")
 	return a.agent.Signers()
 }
 
