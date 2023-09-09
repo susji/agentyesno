@@ -22,6 +22,7 @@ import (
 
 func main() {
 	var listen, agent string
+	var printlisten bool
 	ac := AgentConfig{
 		signlock: &sync.Mutex{},
 		sigs:     new(atomic.Uint64),
@@ -32,12 +33,18 @@ func main() {
 	flag.BoolVar(&ac.fullkeys, "fullkeys", false, "Dump public keys on sign requests instead of digests")
 	flag.BoolVar(&ac.easyyes, "easyyes", false, "Use `yes` instead of counter for permitting Sign requests")
 	flag.BoolVar(&ac.verbose, "verbose", false, "Verbose logging")
+	flag.BoolVar(&printlisten, "printlisten", false, "Print default listening socket path & exit")
 	flag.DurationVar(
 		&ac.timeout,
 		"timeout",
 		15*time.Second,
 		"Duration to wait for user input on sign request")
 	flag.Parse()
+
+	if printlisten {
+		fmt.Println(getsocketdefault())
+		os.Exit(0)
+	}
 
 	log.Print("listen: ", listen)
 	log.Print("agent: ", agent)

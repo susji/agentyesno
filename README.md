@@ -48,15 +48,15 @@ Other clients will have to wait for their turn.
 
 `agentyesno` listens on a domain socket as locally running SSH agents typically
 do and you instruct your SSH client to use `agentyesno` as the agent. With
-OpenSSH, this would mean setting your `SSH_AUTH_SOCK` to point at `agentyesno`
-domain socket on the filesystem, perhaps like this:
+OpenSSH, this would mean setting your `SSH_AUTH_SOCK` to point at `agentyesno`'s
+listening socket on the filesystem, perhaps like this:
 
-    $ export SSH_AUTH_SOCK="$HOME/.agentyesno.socket"
+    $ export SSH_AUTH_SOCK="$(agentyesno -printlisten)"
 
 If you don't wish to make the change persist in the shell session, invoke
 something like this:
 
-    $ SSH_AUTH_SOCK="$HOME/.agentyesno.socket" ssh user@host
+    $ SSH_AUTH_SOCK="$(agentyesno -printlisten)" ssh user@host
 
 Somewhere on the background and easily reachable, perhaps in a different
 terminal window or a tmux pane, you would have `agentyesno` ready and waiting
