@@ -20,6 +20,15 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
+func Error(f string, va ...interface{}) {
+	fmt.Fprintf(os.Stderr, f+"\n", va...)
+}
+
+func Fatal(f string, va ...interface{}) {
+	fmt.Fprintf(os.Stderr, f+"\n", va...)
+	os.Exit(1)
+}
+
 func main() {
 	var listen, agent string
 	var printlisten bool
@@ -46,34 +55,34 @@ func main() {
 		os.Exit(0)
 	}
 
-	log.Print("listen: ", listen)
-	log.Print("agent: ", agent)
-	log.Print("timeout: ", ac.timeout)
-	log.Print("fullkeys: ", ac.fullkeys)
-	log.Print("easyyes: ", ac.easyyes)
-	log.Print("verbose: ", ac.verbose)
+	fmt.Println("listen:   ", listen)
+	fmt.Println("agent:    ", agent)
+	fmt.Println("timeout:  ", ac.timeout)
+	fmt.Println("fullkeys: ", ac.fullkeys)
+	fmt.Println("easyyes:  ", ac.easyyes)
+	fmt.Println("verbose:  ", ac.verbose)
 	ensurepaths(listen, agent)
 
 	inerr := 0
 	if len(listen) == 0 {
 		inerr++
-		ac.Important("missing listen path")
+		Error("missing listen path")
 	}
 	if len(agent) == 0 {
 		inerr++
-		ac.Important("missing agent path")
+		Error("missing agent path")
 	}
 	if inerr > 0 {
-		ac.Important("errors, bailing")
+		Fatal("errors, bailing")
 	}
 
 	if err := os.RemoveAll(listen); err != nil {
-		log.Fatal("cannot remove existing listening socket:", err)
+		Fatal("cannot remove existing listening socket: %v", err)
 	}
 	syscall.Umask(0177)
 	l, err := net.Listen("unix", listen)
 	if err != nil {
-		log.Fatal("cannot open listening socket:", err)
+		Fatal("cannot open listening socket: %v", err)
 	}
 
 	c := make(chan os.Signal, 1)
@@ -151,7 +160,7 @@ func (a *AgentYesNo) List() ([]*agent.Key, error) {
 }
 
 func (a *AgentYesNo) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error) {
-	log.Println("request: Sign")
+	a.Verbose("request: Sign")
 	id := a.sigs.Add(1)
 	p := func(fmt string, va ...interface{}) {
 		args := []interface{}{id}
@@ -228,8 +237,8 @@ func (a *AgentYesNo) Signers() ([]ssh.Signer, error) {
 func getsocketdefault() string {
 	sockdir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: unable to get home directory: %v\n", err)
-		fmt.Fprintln(os.Stderr, "set the listening path manually to some safe location with `-listen`")
+		Error("warning: unable to get home directory: %v", err)
+		Error("set the listening path manually to some safe location with `-listen`")
 		return ""
 	}
 	return path.Join(sockdir, ".agentyesno.socket")
