@@ -107,17 +107,17 @@ func main() {
 	}
 }
 
-func handle(cc net.Conn, ap string, config AgentConfig) {
+func handle(cc net.Conn, ap string, ac AgentConfig) {
 	defer cc.Close()
 	ca, err := net.Dial("unix", ap)
 	if err != nil {
-		log.Print("cannot dial real agent:", err)
+		ac.Important("cannot dial real agent: %v", err)
 		return
 	}
 	defer ca.Close()
 
 	a := agent.NewClient(ca)
-	ayn := &AgentYesNo{agent: a, AgentConfig: config}
+	ayn := &AgentYesNo{agent: a, AgentConfig: ac}
 	agent.ServeAgent(ayn, cc)
 }
 
@@ -165,7 +165,7 @@ func (a *AgentYesNo) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error
 	p := func(fmt string, va ...interface{}) {
 		args := []interface{}{id}
 		args = append(args, va...)
-		log.Printf("[%d] "+fmt, args...)
+		a.Important("[%d] "+fmt, args...)
 	}
 
 	var keydump string
