@@ -206,7 +206,6 @@ func (a *AgentYesNo) Signers() ([]ssh.Signer, error) {
 func getsocketdefault() string {
 	sockdir, err := os.UserHomeDir()
 	if err != nil {
-		sockdir = os.TempDir()
 		log.Print("warning: unable to get home directory: ", err)
 		log.Fatal("set the listening path manually to some safe location with `-listen`")
 	}
