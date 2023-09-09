@@ -42,7 +42,7 @@ non-interactively.
 
 
 To make usage clearer, `agentyesno` will only serve one Sign Request at a time.
-Other clients will have to wait until for their turn.
+Other clients will have to wait for their turn.
 
 # How to use?
 
