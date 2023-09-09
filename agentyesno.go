@@ -25,7 +25,7 @@ func main() {
 	var timeout time.Duration
 	var fullkeys, easyyes bool
 
-	flag.StringVar(&listen, "listen", getsockpath(), "Path to `agentyesno` domain socket")
+	flag.StringVar(&listen, "listen", getsocketdefault(), "Path for our listening agent socket")
 	flag.StringVar(&agent, "agent", getagentdefault(), "Path to real SSH agent's domain socket")
 	flag.BoolVar(&fullkeys, "fullkeys", false, "Dump public keys on sign requests instead of digests")
 	flag.BoolVar(&easyyes, "easyyes", false, "Use `yes` instead of counter for permitting Sign requests")
@@ -203,11 +203,12 @@ func (a *AgentYesNo) Signers() ([]ssh.Signer, error) {
 	return a.agent.Signers()
 }
 
-func getsockpath() string {
+func getsocketdefault() string {
 	sockdir, err := os.UserHomeDir()
 	if err != nil {
 		sockdir = os.TempDir()
-		log.Print("warning: unable to get home directory, using temp directory:", sockdir)
+		log.Print("warning: unable to get home directory: ", err)
+		log.Fatal("set the listening path manually to some safe location with `-listen`")
 	}
 	return path.Join(sockdir, ".agentyesno.socket")
 }
