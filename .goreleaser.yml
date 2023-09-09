@@ -1,0 +1,12 @@
+builds:
+- id: agentyesno
+  binary: agentyesno
+  goos:
+    - linux
+    - darwin
+    - freebsd
+    - openbsd
+  goarch:
+    - amd64
+    - arm
+    - arm64
