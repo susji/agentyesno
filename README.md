@@ -46,15 +46,24 @@ Other clients will have to wait for their turn.
 
 # How to use?
 
+## Summary
+
+1. Run `agentyesno` and make sure it can find the real SSH agent either with
+   `$SSH_AUTH_SOCKET` or with the `-agent` parameter
+2. Connect to some SSH server using `ssh` with agent forwarding enabled and make
+   sure `$SSH_AUTH_SOCK` points at `agentyesno`
+
+## Details
+
 `agentyesno` listens on a domain socket as locally running SSH agents typically
 do and you instruct your SSH client to use `agentyesno` as the agent. With
-OpenSSH, this would mean setting your `SSH_AUTH_SOCK` to point at `agentyesno`'s
+OpenSSH, this would mean setting your `$SSH_AUTH_SOCK` to point at `agentyesno`'s
 listening socket on the filesystem, perhaps like this:
 
     $ export SSH_AUTH_SOCK="$(agentyesno -printlisten)"
 
-If you don't wish to make the change persist in the shell session, invoke
-something like this:
+If you don't wish to make the change persist in the shell session, you can set
+the value for a single program execution:
 
     $ SSH_AUTH_SOCK="$(agentyesno -printlisten)" ssh user@host
 
@@ -65,7 +74,19 @@ for agent requests:
     $ agentyesno
 
 `agentyesno` will default to finding your real agent via `$SSH_AUTH_SOCK`. You
-can override the listening socket and real agent paths with `-listen` and
-`-agent`, respectively. For more instructions, see the short code and
+may also set the listening socket and real agent paths with `-listen` and
+`-agent`, respectively.
+
+For more instructions, see the program code and the help:
 
     $ agentyesno -h
+
+# How to install?
+
+If you have a Go toolchain installed, you can install the latest tagged version of
+`agentyesno` by invoking
+
+    $ go install github.com/susji/agentyesno@latest
+
+Alternatively, [here](https://github.com/susji/agentyesno/releases) you will
+find pre-built binaries for several architectures and UNIX-like platforms.
