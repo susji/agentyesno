@@ -93,10 +93,10 @@ func main() {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		sig := <-c
-		ac.Important("bailing, got signal %s", sig)
+		Error("bailing, got signal %s", sig)
 		l.Close()
 		if err := os.RemoveAll(listen); err != nil {
-			ac.Important("cannot cleanup listening socket: %v", err)
+			Error("cannot cleanup listening socket: %v", err)
 		}
 		os.Exit(1)
 	}()
