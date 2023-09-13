@@ -1,6 +1,8 @@
 builds:
 - id: agentyesno
   binary: agentyesno
+  env:
+    - CGO_ENABLED=0
   goos:
     - linux
     - darwin
@@ -10,3 +12,9 @@ builds:
     - amd64
     - arm
     - arm64
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
