@@ -17,9 +17,9 @@ Use `agentyesno` at your own risk. It is untested and experimental. This kind of
 a tool may offer you some protection in certain scenarios, but there are many
 scenarios where it will not help you. There is a reason why for example OpenSSH
 does *not* enable forwarding of agent connections by default. If you don't know
-what you're doing, don't use agent forwarding. Before you use a tool like this,
-make sure that ProxyJump (`-J`) and locking the agent (`-x`) aren't better
-suited for your needs.
+what you are doing, do not use agent forwarding. Before you use a tool like
+this, make sure that ProxyJump (`-J`), locking the agent (`-x`) or ProxyCommand
+are not better suited for your needs.
 
 # How does it work?
 
