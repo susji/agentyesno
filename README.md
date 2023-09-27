@@ -32,12 +32,25 @@ agent. All other supported agent operations are passed transparently and
 non-interactively.
 
 ```
-.---------------.  domain socket  .---------------.  domain socket  .---------------.
-|   ssh agent   |-----------------|   agentyesno  |-----------------|  agent client |
-'---------------'                 '---------------'                 '---------------'
 
-                             <------------------------- Sign Request
-               Sign Response ------------------------->
+     Sign                       Sign
+    Request                    Response
+
+           .---------------.
+      /|\  |   ssh agent   |      |
+       |   '---------------'      |
+       |         |                |
+       |         | domain socket  |
+       |         |                |
+       |   .---------------.      |
+       |   |   agentyesno  |      |
+       |   '---------------'      |
+       |         |                |
+       |         | domain socket  |
+       |         |                |
+       |   .---------------.      |
+       |   |  agent client |     \|/
+           '---------------'
 ```
 
 
